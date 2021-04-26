@@ -1,196 +1,35 @@
 RTLSDR-Airband
 =====================
 
-RTLSDR Airband is intended for Airband reception and online streaming to services such as liveatc.net
+**Current stable release: [3.2.1](https://github.com/szpajder/RTLSDR-Airband/releases/latest)** (released November 13, 2020)
 
-Features
----------------------
- * Decode up to eight AM channels per dongle (within bandwidth frequency range)
- * Decode multiple dongles simutaneously
- * Auto squelch and Automatic Gain Control
- * MP3 encoding
- * Stream to Icecast or SHOUTcast server
- 
-Performance
----------------------
-### x86
- * ~4% per dongle on i5-2430m at 2.1 GHz
- 
-### Raspberry Pi 
- * FFT using Broadcom Videocore IV GPU
- * No overclock required when using 1 dongle plus another dongle running dump1090
- * Turbo overclock setting recommended on RPi V1 when using 2 dongles
-   (no overclocking is necessary on RPi V2)
+RTLSDR-Airband receives analog radio voice channels and produces
+audio streams which can be routed to various outputs, such as online
+streaming services like LiveATC.net. Originally the only SDR type
+supported by the program was Realtek DVB-T dongle (hence the project's
+name). However, thanks to SoapySDR vendor-neutral SDR library, other
+radios are now supported as well.
 
-Demo
----------------------
-![Demo (Windows version)](demo.png?raw=true)
-
-Windows Binary
----------------------
-* Requires CPU with SSE3 support.
-* Requires [Visual C++ 2013 vcredist_x86.exe](http://www.microsoft.com/en-us/download/details.aspx?id=40784)
-* [Download (build 2014-08-11)](http://www.microtony.com/rtl_airband_20140811.zip)
-
-Building
----------------------
-### Windows using VS Express 2013 for Desktop
-#### Getting/Building prerequisites
-##### FFTW3
- * Download fftw-3.3.4-dll32.zip from http://www.fftw.org/install/windows.html
- * Start the VS2013 x86 Native Tools Command Prompt
- * Run lib /def:libfftw3f-3.def to get libfftw3f-3.lib
- * Place the lib into win32/lib
- * Place fftw3.h into win32/include
- * Place libfftw3f-3.dll into the root folder
- 
-##### libogg and libvorbis
- * Download libogg-1.3.1.zip and libvorbis-1.3.4.zip from http://www.xiph.org/downloads/
- * Extract both zip files in the same folder
- * Rename libogg-1.x.x to libogg
- * Open libogg/win32/libogg_static.sln
- * Change to "Release" and build libogg_static
- * Open libvorbis-1.x.x/win32/VS2010/vorbis_static.sln
- * Change to "Release" and build libvorbis_static **(NOT the highlighted libvorbisfile)**
- * Copy both the generated .libs to win32/lib
- * Copy libogg/includes/ogg (the folder) to win32/include
- * Copy libvorbis-1.x.x/includes/vorbis (the folder) to win32/include
- 
-##### libmp3lame
- * Download from http://sourceforge.net/projects/lame/files/lame/3.99/
- * Open vc_solution/vc9_lame.sln
- * Change the Configuration to ReleaseSSE2
- * (optional) Right click libmp3lame-static and open Properties... C/C++... Code Generation... Enable Enhanced Instruction Set... Advanced Vector Instructions
- * Build libmp3lame-static
- * Copy output/ReleaseSSE2/libmp3lame-static.lib and libmpghip-static.lib to win32/lib
- * Copy include/lame.h to win32/include
- 
-##### librtlsdr
- * Download from http://sdr.osmocom.org/trac/wiki/rtl-sdr (search word: "pre-built")
- * Copy rtl-sdr-release/rtl-sdr.h and rtl-sdr_export.h to win32/includes
- * Copy rtl-sdr-release/x32/rtlsdr.lib to win32/lib
- * Copy rtl-sdr-release/x32/rtlsdr.dll and libusb-1.0.dll to root folder
- 
-##### pthreads
- * Download from ftp://sourceware.org/pub/pthreads-win32/
- * Extract Pre-built.2 to the same folder where libogg and libvorbis are located
- * Copy Pre-built.2/lib/x86/pthreadVCE2.lib to win32/lib
- * Copy Pre-built.2/dll/x86/pthreadVCE2.dll to root folder
-
-##### libshout
- * This is the most complicated one
- * Download from http://www.icecast.org/download.php
- * Extract libshout to the same folder where libogg and libvorbis are located
- * Go to libshout-2.x.x/include/shout and rename shout.h.in to shout.h
- * Open libshout/win32/libshout.dsw
- * Change to "Release"... and then open project properties
- * On the General page change Character Set to Use Unicode Character Set
- * Go to C/C++... edit Additional Include Directories
- * Add ../../libogg/include, ../../libvorbis-1.x.x/include and ../../Pre-built.2/include
- * Go to C/C++... Preprocessor... edit Preprocessor Definitions
- * Add HAVE_SYS_TIMEB_H and HAVE_FTIME
- * Try to build, you should get errors
- * One of the error is "error C1083: Cannot open include file: 'compat.h': No such file or directory"
- * Double click on it and change that line from #include &lt;compat.h&gt; to #include &lt;os.h&gt;
- * Build again
- * Copy win32/Release/libshout.lib to win32/lib
- * Copy include/shout (the folder) to win32/include
- 
-#### Building this project
- * Browse into win32 and open the solution
- * Simply build solution or click the "Start Local Windows Debugger" button
- 
-### Raspberry Pi (Raspbian)
- * Install RTLSDR library (http://sdr.osmocom.org/trac/wiki/rtl-sdr)
- *Installing RTLSDR library: 
-
-        sudo apt-get update
-        sudo apt-get upgrade
-        sudo apt-get install git cmake libusb-1.0-0.dev build-essential
-        sudo rpi-update && sudo reboot
-
-        git clone git://git.osmocom.org/rtl-sdr.git
-        cd rtl-sdr/
-        mkdir build
-        cd build
-        cmake ../
-        make
-        sudo make install
-        sudo ldconfig
-        sudo mv $HOME/rtl-sdr/rtl-sdr.rules /etc/udev/rules.d/rtl-sdr.rules
-
- * Blacklist DVB drivers to avoid conflict with SDR driver - before connecting the USB dongle:
- * 
-
-								echo "blacklist r820t" >> /etc/modprobe.d/dvb-blacklist.conf
-								echo "blacklist rtl2832" >> /etc/modprobe.d/dvb-blacklist.conf
-								echo "blacklist rtl2830" >> /etc/modprobe.d/dvb-blacklist.conf
-								echo "blacklist dvb_usb_rtl28xxu" >> /etc/modprobe.d/dvb-blacklist.conf
-
-
- *Installing RTLSDR-AIRBAND: 
- 
-        sudo apt-get install libmp3lame-dev libvorbis-dev libshout-dev
-        git clone https://github.com/szpajder/RTLSDR-Airband.git
-        cd RTLSDR-Airband/
-        
- * if you are building for RPi V1: 
- * 
-        make rtl_airband_vfp
-
- * if you are building for RPi V2: 
- * 
-        make rtl_airband_neon
-
- * Then
- 
-        sudo mknod char_dev c 100 0
-
- * You need to edit config.txt with your settings
- 
-          nano config.txt
-
- * You need to run the program with root privileges (eg. sudo ./rtl_airband)
-        sudo ./rtl_airband_neon
-
-### Linux, x86
- * Install RTLSDR library (http://sdr.osmocom.org/trac/wiki/rtl-sdr)
- * Blacklist DVB drivers to avoid conflict with SDR driver - before connecting
-   the USB dongle add following lines to /etc/modprobe.d/dvb-blacklist.conf:
-
-        blacklist r820t
-        blacklist rtl2832
-        blacklist rtl2830
-        blacklist dvb_usb_rtl28xxu
-
- * sudo apt-get install libmp3lame-dev libvorbis-dev libshout-dev libfftw3-dev
- * cd into the project folder (where makefile is located)
- * make rtl_airband
- * You need to run the program with root privileges (eg. sudo ./rtl_airband)
-
-Configuring
+Documentation
 --------------------
-All configurations are saved in config.txt file. Fields should be separated by space(s) or tab(s).
+User's manual is now on the [wiki](https://github.com/szpajder/RTLSDR-Airband/wiki).
 
-You may edit config.txt.example using a spreadsheet program.
+Credits and thanks
+--------------------
+I hereby express my gratitude to everybody who helped with the development and testing
+of RTLSDR-Airband. Special thanks go to:
 
-Format:
-
-    NumDongles
-    DongleNo NumChannels Gain CenterFreq FreqCorrection
-    Hostname Port MountPoint Frequency Username Password
-    Hostname Port MountPoint Frequency Username Password
-    ....
-    DongleNo NumChannels Gain CenterFreq FreqCorrection
-    Hostname Port MountPoint Frequency Username Password
-    .....
+ * Dave Pascoe
+ * SDR Guru
+ * Marcus Ströbel
+ * strix-technica
+ * charlie-foxtrot
 
 License
 --------------------
-Copyright (C) 2014 Wong Man Hang <microtony@gmail.com>
+Copyright (C) 2015-2020 Tomasz Lemiech <szpajder@gmail.com>
 
-Changes and updates published on http://github.com/szpajder/RTLSDR-Airband :
-Copyright (C) 2015 Tomasz Lemiech <szpajder@gmail.com>
+Based on original work by Wong Man Hang <microtony@gmail.com>
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -204,29 +43,24 @@ GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
-    
-Open Source Licenses
+
+Open Source Licenses of bundled code
 ---------------------
-
-###fftw3
- * Copyright (c) 2003, 2007-14 Matteo Frigo
- * Copyright (c) 2003, 2007-14 Massachusetts Institute of Technology
- * GNU General Public License Version 2
-
-###gpu_fft
-Copyright (c) 2013, Andrew Holme.
+### gpu_fft
+BCM2835 "GPU_FFT" release 2.0
+Copyright (c) 2014, Andrew Holme.
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
-* Redistributions of source code must retain the above copyright
-notice, this list of conditions and the following disclaimer.
-* Redistributions in binary form must reproduce the above copyright
-notice, this list of conditions and the following disclaimer in the
-documentation and/or other materials provided with the distribution.
-* Neither the name of the copyright holder nor the
-names of its contributors may be used to endorse or promote products
-derived from this software without specific prior written permission.
+ * Redistributions of source code must retain the above copyright
+   notice, this list of conditions and the following disclaimer.
+ * Redistributions in binary form must reproduce the above copyright
+   notice, this list of conditions and the following disclaimer in the
+   documentation and/or other materials provided with the distribution.
+ * Neither the name of the copyright holder nor the
+   names of its contributors may be used to endorse or promote products
+   derived from this software without specific prior written permission.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -238,79 +72,8 @@ LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
 ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-    
-###libmp3lame
- *      Copyright (c) 1999 Mark Taylor
- *      Copyright (c) 2000-2002 Takehiro Tominaga
- *      Copyright (c) 2000-2011 Robert Hegemann
- *      Copyright (c) 2001 Gabriel Bouvigne
- *      Copyright (c) 2001 John Dahlstrom
- *  GNU Library General Public License Version 2
 
-###libogg
-Copyright (c) 2002, Xiph.org Foundation
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions
-are met:
-
-- Redistributions of source code must retain the above copyright
-notice, this list of conditions and the following disclaimer.
-
-- Redistributions in binary form must reproduce the above copyright
-notice, this list of conditions and the following disclaimer in the
-documentation and/or other materials provided with the distribution.
-
-- Neither the name of the Xiph.org Foundation nor the names of its
-contributors may be used to endorse or promote products derived from
-this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-A PARTICULAR PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE FOUNDATION
-OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-###librtlsdr
+### rtl-sdr
  * Copyright (C) 2012 by Steve Markgraf <steve@steve-m.de>
+ * Copyright (C) 2015 by Kyle Keen <keenerd@gmail.com>
  * GNU General Public License Version 2
-
-###libshout
- * Copyright (C) 2002-2004 the Icecast team <team@icecast.org>
- * GNU Library General Public License Version 2
-
-###libvorbis
-Copyright (c) 2002-2008 Xiph.org Foundation
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions
-are met:
-
-- Redistributions of source code must retain the above copyright
-notice, this list of conditions and the following disclaimer.
-
-- Redistributions in binary form must reproduce the above copyright
-notice, this list of conditions and the following disclaimer in the
-documentation and/or other materials provided with the distribution.
-
-- Neither the name of the Xiph.org Foundation nor the names of its
-contributors may be used to endorse or promote products derived from
-this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-A PARTICULAR PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE FOUNDATION
-OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
